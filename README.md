@@ -1,8 +1,32 @@
 # mongo-oplog
 
-[![NPM version](https://badge.fury.io/js/mongo-oplog.svg)](http://badge.fury.io/js/mongo-oplog)
+[![Build Status](https://img.shields.io/travis/cayasso/mongo-oplog/master.svg)](https://travis-ci.org/cayasso/mongo-oplog)
+[![NPM version](https://img.shields.io/npm/v/mongo-oplog.svg)](https://www.npmjs.com/package/mongo-oplog)
+[![XO code style](https://img.shields.io/badge/code_style-XO-5ed9c7.svg)](https://github.com/sindresorhus/xo)
 
 Listening to MongoDB live changes using oplog.
+
+## Features
+
+* Support start and stop tailing the MongoDB `oplog` at any time.
+* Support filtering `oplog` events by `namespaces` (database and collections).
+* Built on top of the native NodeJS [MongoDB driver](https://github.com/mongodb/node-mongodb-native/).
+* First class `Promise` support which enable the use of `async` and `await`.
+* The package has a very small footprint and requires just a few dependencies including `mongodb`, `debug` and `eventemitter3`.
+* Uses `eventemitter3` for high performance event emitting.
+* Strict and readable code enforced with [xo](https://github.com/sindresorhus/xo)
+* Unit tested with `mocha` and built with `babel` for backward compatibility with older versions of NodeJS like `v6.x` and `v7.x`.
+
+## IMPORTANT! Major update version 2.0.x
+
+2.0.x is a major rewrite taking advantage of `es6` and adding support for `promises` and `async/await`. Callbacks are still supported for backward compatibility.
+This version has minimum **API** changes, but these changes might affect your code, so please take a look at the upgrading guide before installing.
+
+[Check the upgrading guide here](https://github.com/cayasso/mongo-oplog/blob/master/UPGRADE.md)
+
+[Go here for the old 1.x readme](https://github.com/cayasso/mongo-oplog/tree/1.x)
+
+[Go here for the old 0.x readme](https://github.com/cayasso/mongo-oplog/tree/0.x)
 
 ## Installation
 
@@ -10,41 +34,67 @@ Listening to MongoDB live changes using oplog.
 $ npm install mongo-oplog
 ```
 
-## IMPORTANT! Migrating from 0.x to 1.x
+## Configure MongoDB with replica set
 
-[Check the upgrading guide here](https://github.com/cayasso/mongo-oplog/blob/develop/UPGRADE.md)
+You need to configure your MongoDB instance (local instance) to have access to the [oplog](https://docs.mongodb.com/manual/core/replica-set-oplog/), here are some quick steps on how to do so:
+
+1. Shutdown your existing mongo instance if its running.
+
+2. Restart the instance. Use the `--replSet` option to specify the name of the replica set.
+
+``` bash
+$ sudo mongod --replSet rs0
+```
+
+3. Connect to the mongo instance by executing `mongo` in your terminal:
+
+```bash
+$ mongo
+```
+
+4. In the mongo shell run `rs.initiate()` to initiate the new replica set:
+
+```bash
+> rs.initiate()
+```
+
+Once it is initiated then you are ready to start using `mongo-oplog`.
+
+And [here is the official MongoDB documentation](https://docs.mongodb.com/manual/tutorial/convert-standalone-to-replica-set/) if you need additional help on MongoDB replica set.
 
 ## Usage
 
 ``` javascript
-var MongoOplog = require('mongo-oplog');
-var oplog = MongoOplog('mongodb://127.0.0.1:27017/local', { ns: 'test.posts' }).tail();
+import MongoOplog from 'mongo-oplog'
+const oplog = MongoOplog('mongodb://127.0.0.1:27017/local', { ns: 'test.posts' })
 
-oplog.on('op', function (data) {
+oplog.tail();
+
+oplog.on('op', data => {
   console.log(data);
 });
 
-oplog.on('insert', function (doc) {
-  console.log(doc.op);
+oplog.on('insert', doc => {
+  console.log(doc);
 });
 
-oplog.on('update', function (doc) {
-  console.log(doc.op);
+oplog.on('update', doc => {
+  console.log(doc);
 });
 
-oplog.on('delete', function (doc) {
-  console.log(doc.op._id);
+oplog.on('delete', doc => {
+  console.log(doc.o._id);
 });
 
-oplog.on('error', function (error) {
+oplog.on('error', error => {
   console.log(error);
 });
 
-oplog.on('end', function () {
+oplog.on('end', () => {
   console.log('Stream ended');
 });
 
-oplog.stop(function () {
+oplog.stop(() => {
   console.log('server stopped');
 });
 ```
@@ -54,36 +104,69 @@ oplog.stop(function () {
 ### MongoOplog(uri, [options])
 
 * `uri`: Valid MongoDB uri or a MongoDB server instance.
-* `options` MongoDB onnection options.
+* `options` MongoDB connection options.
 
 ### oplog.tail([fn])
 
 Start tailing.
+This method support both `Promise` and `callback`.
 
 ```javascript
-oplog.tail(function(){
-  console.log('tailing started');
-})
+oplog.tail().then(() => {
+  console.log('tailing started')
+}).catch(err => console.error(err))
+
+// or with async/await
+async function tail() {
+  try {
+    await oplog.tail()
+    console.log('tailing started')
+  } catch (err) {
+    console.log(err)
+  }
+}
 ```
 
 ### oplog.stop([fn])
 
 Stop tailing and disconnect from server.
+This method support both `Promise` and `callback`.
 
 ```javascript
-oplog.stop(function() {
-  console.log('tailing stopped');
-});
+oplog.stop().then(() => {
+  console.log('tailing stopped')
+}).catch(err => console.error(err))
+
+// or with async/await
+async function stop() {
+  try {
+    await oplog.stop()
+    console.log('tailing stopped')
+  } catch (err) {
+    console.log(err)
+  }
+}
 ```
 
 ### oplog.destroy([fn])
 
 Destroy the `mongo-oplog` object by stop tailing and disconnecting from server.
+This method support both `Promise` and `callback`.
 
 ```javascript
-oplog.destroy(function(){
-  console.log('destroyed');
-})
+oplog.destroy.then(() => {
+  console.log('destroyed')
+}).catch(err => console.error(err))
+
+// or with async/await
+async function destroy() {
+  try {
+    await oplog.destroy()
+    console.log('destroyed')
+  } catch (err) {
+    console.log(err)
+  }
+}
 ```
 
 ### oplog.ignore
@@ -100,19 +183,17 @@ oplog.ignore = false // to resume
 Create and return a filter object.
 
 ```javascript
-var filter = oplog.filter('*.posts');
-filter.on('op', fn);
-oplog.tail();
+const filter = oplog.filter('*.posts')
+filter.on('op', fn)
+oplog.tail()
 ```
 
-### filter.destroy([fn]);
+### filter.destroy()
 
 Destroy filter object.
 
 ```javascript
-filter.destroy(function(){
-  console.log('destroyed');
-})
+filter.destroy()
 ```
 
 ### filter.ignore
@@ -137,26 +218,11 @@ Events supported by `oplog` and `filter`;
 
 ## Run tests
 
-Configure MongoDB for ac active oplog:
-
-Start MongoDB with:
-
-``` bash
-$ mongod --replSet test
-```
-
-Start a `mongo` shell and configure mongo as follows:
-
-```bash
-> var config = {_id: "test", members: [{_id: 0, host: "127.0.0.1:27017"}]}
-> rs.initiate(config)
-```
-
-Once configuration is initiated then you can run the test:
+Configure MongoDB for active oplog, once this is done then you can run the test:
 
 ``` bash
 $ npm install
-$ make test
+$ npm run test
 ```
 
 ## License
