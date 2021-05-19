@@ -49,7 +49,8 @@ module.exports = (uri, options = {}) => {
       throw new Error('Invalid mongo db.')
     }
   } else {
-      await connect()
+    connect()
+      .catch(err => onerror(err));
   }
 
   async function connect() {
