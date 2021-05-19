@@ -30,7 +30,7 @@ const toCb = fn => cb => {
 }
 
 module.exports = (uri, options = {}) => {
-  let db = {}
+  let db
   let client
   let stream
   let connected = false
@@ -48,19 +48,20 @@ module.exports = (uri, options = {}) => {
     } else {
       throw new Error('Invalid mongo db.')
     }
+  } else {
+      await connect()
   }
 
   async function connect() {
     if (connected) return db
     client = await MongoClient.connect(uri, opts)
-    Object.assign(db, client.db())
+    db = client.db()
     connected = true
   }
 
   async function tail() {
     try {
       debug('Connected to oplog database')
-      await connect()
       stream = await createStream({ ns, coll, ts, db })
       stream.on('end', onend)
       stream.on('data', ondata)
