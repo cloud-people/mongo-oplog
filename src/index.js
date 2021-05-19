@@ -30,7 +30,7 @@ const toCb = fn => cb => {
 }
 
 module.exports = (uri, options = {}) => {
-  let db
+  let db = {}
   let client
   let stream
   let connected = false
@@ -53,7 +53,7 @@ module.exports = (uri, options = {}) => {
   async function connect() {
     if (connected) return db
     client = await MongoClient.connect(uri, opts)
-    db = client.db()
+    Object.assign(db, client.db())
     connected = true
   }
 
