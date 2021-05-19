@@ -29,7 +29,7 @@ const toCb = fn => cb => {
   }
 }
 
-module.exports = (uri, options = {}) => {
+module.exports = async (uri, options = {}) => {
   let db
   let client
   let stream
@@ -49,8 +49,7 @@ module.exports = (uri, options = {}) => {
       throw new Error('Invalid mongo db.')
     }
   } else {
-    connect()
-      .catch(err => onerror(err));
+    await connect()
   }
 
   async function connect() {
