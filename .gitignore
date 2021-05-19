@@ -4,3 +4,4 @@ examples
 dump.rdb
 *.log
 lib/
+.npmrc
