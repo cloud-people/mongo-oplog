@@ -11,6 +11,7 @@ const conn = {
 }
 
 let db
+let client
 let opdb
 let oplog
 
@@ -18,7 +19,8 @@ describe('mongo-oplog', function () {
   before(function (done) {
     MongoClient.connect(conn.mongo, function (err, database) {
       if (err) return done(err)
-      db = database
+      client = database;
+      db = database.db()
       done()
     })
   })
@@ -37,12 +39,13 @@ describe('mongo-oplog', function () {
   })
 
   it('should accept mongodb object as connection', function (done) {
-    MongoClient.connect(conn.oplog, function (err, db) {
+    MongoClient.connect(conn.oplog, function (err, client) {
+      const db = client.db()
       if (err) return done(err)
-      oplog = MongoOplog(db)
+      oplog = MongoOplog(client)
       should(oplog.db).eql(db)
       db.dropDatabase(function () {
-        db.close(done)
+        client.close(done)
       })
     })
   })
@@ -404,7 +407,7 @@ describe('mongo-oplog', function () {
 
   after(function (done) {
     db.dropDatabase(function () {
-      db.close(done)
+      client.close(done)
     })
   })
 
